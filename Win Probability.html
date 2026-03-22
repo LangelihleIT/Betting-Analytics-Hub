@@ -1,0 +1,874 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Win Probability</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        min-height: 100vh;
+        display: flex;
+        gap: 24px;
+        align-items: flex-start;
+        justify-content: center;
+        background: #0a0a0f;
+        background-image:
+          radial-gradient(ellipse at 20% 40%, rgba(95, 12, 197, 0.12) 0%, transparent 55%),
+          radial-gradient(ellipse at 80% 60%, rgba(23, 113, 230, 0.12) 0%, transparent 55%);
+        font-family: "Barlow", sans-serif;
+        padding: 32px 24px;
+      }
+
+      /* SIDEBAR */
+      .sidebar {
+        width: 240px;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        position: sticky;
+        top: 32px;
+        max-height: calc(100vh - 64px);
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255,255,255,0.1) transparent;
+      }
+      .sidebar::-webkit-scrollbar { width: 4px; }
+      .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+      .sidebar-title {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.25);
+        padding: 0 4px 10px;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        background: #0a0a0f;
+        z-index: 1;
+      }
+      .saved-count {
+        background: rgba(255,255,255,0.08);
+        border-radius: 20px;
+        padding: 2px 8px;
+        font-size: 10px;
+        color: rgba(255,255,255,0.35);
+      }
+      .empty-state {
+        padding: 20px 8px;
+        text-align: center;
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 12px;
+        color: rgba(255,255,255,0.15);
+        letter-spacing: 0.05em;
+        line-height: 1.6;
+      }
+      .match-tab {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.07);
+        border-radius: 10px;
+        padding: 12px 14px;
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s, transform 0.15s;
+        position: relative;
+        overflow: hidden;
+      }
+      .match-tab::before {
+        content: "";
+        position: absolute;
+        left: 0; top: 0; bottom: 0;
+        width: 3px;
+        background: linear-gradient(180deg, #5f0cc5, #1771e6);
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+      .match-tab:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.13); transform: translateX(2px); }
+      .match-tab:hover::before { opacity: 1; }
+      .match-tab.active { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.18); transform: translateX(2px); }
+      .match-tab.active::before { opacity: 1; }
+      .match-tab-title {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 14px; font-weight: 700;
+        color: rgba(255,255,255,0.85);
+        letter-spacing: 0.04em;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        margin-bottom: 6px; padding-right: 20px;
+      }
+      .match-tab-bar { display: flex; height: 4px; border-radius: 2px; overflow: hidden; gap: 1px; }
+      .mtb-a { background: #7c3aed; }
+      .mtb-d { background: #ca8a04; }
+      .mtb-b { background: #1d4ed8; }
+      .match-tab-meta { display: flex; justify-content: space-between; margin-top: 7px; }
+      .match-tab-pct { font-family: "Barlow Condensed", sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.03em; }
+      .match-tab-pct.a { color: #7c3aed; }
+      .match-tab-pct.d { color: #ca8a04; }
+      .match-tab-pct.b { color: #1d4ed8; }
+      .match-tab-result {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+        padding: 2px 7px; border-radius: 4px;
+      }
+      .match-tab-result.win-a { background: rgba(95,12,197,0.25); color: #a78bfa; }
+      .match-tab-result.win-d { background: rgba(234,179,8,0.2); color: #fde047; }
+      .match-tab-result.win-b { background: rgba(23,113,230,0.25); color: #93c5fd; }
+      .match-tab-result.none { color: rgba(255,255,255,0.2); font-size: 9px; }
+      .delete-btn {
+        position: absolute; top: 8px; right: 8px;
+        background: none; border: none; color: rgba(255,255,255,0.15);
+        cursor: pointer; font-size: 14px; line-height: 1;
+        padding: 2px; border-radius: 4px;
+        transition: color 0.15s, background 0.15s;
+        display: none;
+      }
+      .match-tab:hover .delete-btn { display: block; }
+      .delete-btn:hover { color: #f87171; background: rgba(248,113,113,0.1); }
+
+      /* MAIN */
+      .main { flex: 1; max-width: 540px; }
+      .card {
+        background: #12121a;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 16px;
+        padding: 32px;
+        box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+        animation: cardIn 0.3s cubic-bezier(0.4,0,0.2,1);
+      }
+      @keyframes cardIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .card-header {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 24px;
+      }
+      .card-title {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 11px; font-weight: 700; letter-spacing: 0.2em;
+        text-transform: uppercase; color: rgba(255,255,255,0.3);
+      }
+      .header-actions { display: flex; gap: 8px; }
+      .btn-icon {
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 8px; color: rgba(255,255,255,0.5);
+        cursor: pointer; width: 34px; height: 34px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 15px;
+        transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
+        position: relative;
+      }
+      .btn-icon:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); color: #fff; transform: scale(1.05); }
+      .btn-save { background: rgba(95,12,197,0.2); border-color: rgba(95,12,197,0.45); color: #a78bfa; }
+      .btn-save:hover { background: rgba(95,12,197,0.35); border-color: #7c3aed; color: #c4b5fd; }
+      .btn-save.saved-flash { background: rgba(34,197,94,0.2); border-color: rgba(34,197,94,0.45); color: #86efac; transform: scale(1.08); }
+      .btn-tooltip {
+        position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+        background: #1e1e2e; border: 1px solid rgba(255,255,255,0.12);
+        color: rgba(255,255,255,0.7);
+        font-family: "Barlow Condensed", sans-serif; font-size: 11px; letter-spacing: 0.08em;
+        white-space: nowrap; padding: 4px 10px; border-radius: 6px;
+        pointer-events: none; opacity: 0; transition: opacity 0.15s; z-index: 10;
+      }
+      .btn-icon:hover .btn-tooltip { opacity: 1; }
+
+      /* Teams */
+      .teams-row {
+        display: grid; grid-template-columns: 1fr auto 1fr;
+        gap: 12px; align-items: center; margin-bottom: 28px;
+      }
+      .team-input {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 8px; padding: 10px 14px;
+        color: #fff;
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 18px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.05em;
+        width: 100%; outline: none;
+        transition: border-color 0.2s, background 0.2s;
+      }
+      .team-input::placeholder { color: rgba(255,255,255,0.2); }
+      .team-input:focus { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.08); }
+      .team-input.team-a { text-align: left; border-left: 3px solid #5f0cc5; }
+      .team-input.team-b { text-align: right; border-right: 3px solid #1771e6; }
+      .vs-badge {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 18px; font-weight: 850;
+        color: rgba(255,255,255,0.25); letter-spacing: 0.1em;
+      }
+
+      /* Prob labels */
+      .prob-labels { display: grid; grid-template-columns: 1fr 1fr 1fr; margin-bottom: 8px; }
+      .prob-label { display: flex; flex-direction: column; gap: 2px; }
+      .prob-label:nth-child(2) { align-items: center; }
+      .prob-label:nth-child(3) { align-items: flex-end; }
+      .prob-label .team-name {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+        color: rgba(255,255,255,0.4);
+        min-height: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px;
+      }
+      .prob-label .pct {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 28px; font-weight: 800; line-height: 1; transition: color 0.3s;
+      }
+      .prob-label:nth-child(1) .pct { color: #7c3aed; }
+      .prob-label:nth-child(2) .pct { color: #ca8a04; }
+      .prob-label:nth-child(3) .pct { color: #1d4ed8; }
+
+      /* Bar */
+      .probability-bar {
+        display: flex; height: 14px; border-radius: 7px; overflow: hidden;
+        background: rgba(255,255,255,0.05); margin-bottom: 28px;
+      }
+      .bar-a { background: linear-gradient(90deg, #5f0cc5, #7c3aed); transition: width 0.4s cubic-bezier(0.4,0,0.2,1); }
+      .bar-d { background: linear-gradient(90deg, #ca8a04, #eab308); transition: width 0.4s cubic-bezier(0.4,0,0.2,1); }
+      .bar-b { background: linear-gradient(90deg, #1771e6, #3b82f6); transition: width 0.4s cubic-bezier(0.4,0,0.2,1); }
+
+      /* Prob inputs */
+      .prob-inputs {
+        display: grid; grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px; margin-bottom: 14px;
+      }
+      .prob-field { display: flex; flex-direction: column; gap: 5px; }
+      .prob-field label {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 10px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase;
+      }
+      .prob-field:nth-child(1) label { color: #7c3aed; }
+      .prob-field:nth-child(2) label { color: #ca8a04; }
+      .prob-field:nth-child(3) label { color: #1d4ed8; }
+      .prob-field input {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 8px; padding: 10px 12px;
+        color: #fff;
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 20px; font-weight: 700;
+        width: 100%; text-align: center; outline: none;
+        transition: border-color 0.2s, background 0.2s;
+      }
+      .prob-field input::placeholder { color: rgba(255,255,255,0.15); }
+      .prob-field input:focus { border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.08); }
+      .prob-field:nth-child(1) input:focus { border-color: #5f0cc5; }
+      .prob-field:nth-child(2) input:focus { border-color: #eab308; }
+      .prob-field:nth-child(3) input:focus { border-color: #1771e6; }
+
+      .warning {
+        font-size: 12px; color: #f87171; text-align: center;
+        min-height: 18px; margin-bottom: 6px;
+        font-family: "Barlow Condensed", sans-serif; letter-spacing: 0.05em;
+      }
+
+      /* ── ODDS SECTION ── */
+      .section-divider {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 18px 0 14px;
+      }
+      .section-divider-label {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.2);
+        white-space: nowrap;
+      }
+      .section-divider-line {
+        flex: 1;
+        height: 1px;
+        background: rgba(255,255,255,0.07);
+      }
+
+      .odds-format-tabs {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 12px;
+      }
+      .odds-tab {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        padding: 5px 12px;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: transparent;
+        color: rgba(255,255,255,0.3);
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s, color 0.15s;
+      }
+      .odds-tab:hover {
+        background: rgba(255,255,255,0.06);
+        color: rgba(255,255,255,0.6);
+      }
+      .odds-tab.active {
+        background: rgba(255,255,255,0.1);
+        border-color: rgba(255,255,255,0.2);
+        color: rgba(255,255,255,0.85);
+      }
+
+      .odds-inputs {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 6px;
+      }
+      .odds-field { display: flex; flex-direction: column; gap: 5px; }
+      .odds-field label {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 10px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase;
+      }
+      .odds-field:nth-child(1) label { color: rgba(124,58,237,0.7); }
+      .odds-field:nth-child(2) label { color: rgba(202,138,4,0.7); }
+      .odds-field:nth-child(3) label { color: rgba(29,78,216,0.7); }
+      .odds-field input {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 8px; padding: 9px 12px;
+        color: rgba(255,255,255,0.8);
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 18px; font-weight: 700;
+        width: 100%; text-align: center; outline: none;
+        transition: border-color 0.2s, background 0.2s;
+      }
+      .odds-field input::placeholder { color: rgba(255,255,255,0.12); }
+      .odds-field input:focus { background: rgba(255,255,255,0.06); }
+      .odds-field:nth-child(1) input:focus { border-color: rgba(95,12,197,0.5); }
+      .odds-field:nth-child(2) input:focus { border-color: rgba(234,179,8,0.5); }
+      .odds-field:nth-child(3) input:focus { border-color: rgba(23,113,230,0.5); }
+
+      /* Implied probability row */
+      .implied-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 4px;
+      }
+      .implied-cell {
+        text-align: center;
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 11px;
+        letter-spacing: 0.05em;
+        color: rgba(255,255,255,0.25);
+        min-height: 16px;
+        transition: color 0.2s;
+      }
+      .implied-cell span {
+        font-weight: 700;
+        color: rgba(255,255,255,0.4);
+      }
+      .implied-cell.has-value { color: rgba(255,255,255,0.3); }
+      .implied-cell.has-value span { color: rgba(255,255,255,0.55); }
+
+      /* overround badge */
+      .overround-row {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 6px;
+        min-height: 20px;
+        margin-bottom: 10px;
+      }
+      .overround-label {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+        color: rgba(255,255,255,0.2);
+      }
+      .overround-value {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 12px; font-weight: 700; letter-spacing: 0.06em;
+        padding: 2px 8px; border-radius: 5px;
+        transition: all 0.2s;
+      }
+      .overround-value.neutral { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.35); }
+      .overround-value.high { background: rgba(248,113,113,0.15); color: #f87171; }
+      .overround-value.low { background: rgba(34,197,94,0.12); color: #86efac; }
+
+      /* Result */
+      .result-row { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+      .result-label {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 11px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase;
+        color: rgba(255,255,255,0.3); white-space: nowrap;
+      }
+      .result-select {
+        flex: 1;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 8px; padding: 10px 14px;
+        color: rgba(255,255,255,0.6);
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 14px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+        outline: none; cursor: pointer; transition: border-color 0.2s; appearance: none;
+      }
+      .result-select:focus { border-color: rgba(255,255,255,0.25); }
+      .result-badge {
+        display: inline-flex; align-items: center;
+        padding: 8px 16px; border-radius: 8px;
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 13px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+        opacity: 0; transition: opacity 0.3s;
+      }
+      .result-badge.visible { opacity: 1; }
+      .result-badge.win-a { background: rgba(95,12,197,0.25); color: #a78bfa; border: 1px solid rgba(95,12,197,0.4); }
+      .result-badge.win-d { background: rgba(234,179,8,0.2); color: #fde047; border: 1px solid rgba(234,179,8,0.35); }
+      .result-badge.win-b { background: rgba(23,113,230,0.25); color: #93c5fd; border: 1px solid rgba(23,113,230,0.4); }
+
+      /* Datalist styling hint */
+      input::-webkit-calendar-picker-indicator { display: none !important; }
+
+      @media (max-width: 700px) {
+        body { flex-direction: column; align-items: center; padding: 20px 16px; }
+        .sidebar { width: 100%; max-width: 540px; position: static; max-height: none; flex-direction: row; flex-wrap: wrap; }
+        .sidebar-title { width: 100%; }
+        .match-tab { width: calc(50% - 4px); }
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- datalist for team autocomplete -->
+    <datalist id="teamsList"></datalist>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-title">
+        Saved Matches
+        <span class="saved-count" id="savedCount">0</span>
+      </div>
+      <div class="empty-state" id="emptyState">
+        No saved matches yet.<br />Fill in a prediction and hit save.
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main">
+      <div class="card" id="card">
+        <div class="card-header">
+          <span class="card-title">Win Probability</span>
+          <div class="header-actions">
+            <button class="btn-icon" id="newBtn" onclick="newForm()">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+                <path d="M7.5 1v13M1 7.5h13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              <span class="btn-tooltip">New match</span>
+            </button>
+            <button class="btn-icon btn-save" id="saveBtn" onclick="saveMatch()">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" id="saveIcon">
+                <path d="M2 2.5A.5.5 0 0 1 2.5 2h7.086a.5.5 0 0 1 .353.146l1.915 1.915A.5.5 0 0 1 12 4.414V11.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5v-9Z" stroke="currentColor" stroke-width="1.3"/>
+                <rect x="4.5" y="2" width="4" height="3" rx=".5" fill="currentColor" opacity=".5"/>
+                <rect x="3.5" y="7.5" width="7" height="4" rx=".5" stroke="currentColor" stroke-width="1.3"/>
+              </svg>
+              <span class="btn-tooltip">Save match</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="teams-row">
+          <input class="team-input team-a" id="teamA" placeholder="Team A" list="teamsList" oninput="updateLabels()" autocomplete="off"/>
+          <span class="vs-badge">VS</span>
+          <input class="team-input team-b" id="teamB" placeholder="Team B" list="teamsList" oninput="updateLabels()" autocomplete="off"/>
+        </div>
+
+        <div class="prob-labels">
+          <div class="prob-label">
+            <span class="team-name" id="labelA">Team A</span>
+            <span class="pct" id="pctA">0%</span>
+          </div>
+          <div class="prob-label">
+            <span class="team-name">Draw</span>
+            <span class="pct" id="pctD">0%</span>
+          </div>
+          <div class="prob-label">
+            <span class="team-name" id="labelB">Team B</span>
+            <span class="pct" id="pctB">0%</span>
+          </div>
+        </div>
+
+        <div class="probability-bar">
+          <div class="bar-a" id="barA" style="width:0%"></div>
+          <div class="bar-d" id="barD" style="width:0%"></div>
+          <div class="bar-b" id="barB" style="width:0%"></div>
+        </div>
+
+        <div class="prob-inputs">
+          <div class="prob-field">
+            <label>Team A %</label>
+            <input type="number" id="probA" placeholder="0" min="0" max="100" oninput="updateBar()"/>
+          </div>
+          <div class="prob-field">
+            <label>Draw %</label>
+            <input type="number" id="probD" placeholder="0" min="0" max="100" oninput="updateBar()"/>
+          </div>
+          <div class="prob-field">
+            <label>Team B %</label>
+            <input type="number" id="probB" placeholder="0" min="0" max="100" oninput="updateBar()"/>
+          </div>
+        </div>
+
+        <div class="warning" id="warning"></div>
+
+        <!-- ── ODDS SECTION ── -->
+        <div class="section-divider">
+          <span class="section-divider-label">Odds</span>
+          <div class="section-divider-line"></div>
+          <div class="odds-format-tabs">
+            <button class="odds-tab active" data-fmt="decimal" onclick="setOddsFormat('decimal')">Dec</button>
+            <button class="odds-tab" data-fmt="fractional" onclick="setOddsFormat('fractional')">Frac</button>
+            <button class="odds-tab" data-fmt="american" onclick="setOddsFormat('american')">Amer</button>
+          </div>
+        </div>
+
+        <div class="odds-inputs">
+          <div class="odds-field">
+            <label id="oddsLabelA">Team A</label>
+            <input type="text" id="oddsA" placeholder="—" oninput="updateOdds()"/>
+          </div>
+          <div class="odds-field">
+            <label>Draw</label>
+            <input type="text" id="oddsD" placeholder="—" oninput="updateOdds()"/>
+          </div>
+          <div class="odds-field">
+            <label id="oddsLabelB">Team B</label>
+            <input type="text" id="oddsB" placeholder="—" oninput="updateOdds()"/>
+          </div>
+        </div>
+
+        <div class="implied-row">
+          <div class="implied-cell" id="impliedA"></div>
+          <div class="implied-cell" id="impliedD"></div>
+          <div class="implied-cell" id="impliedB"></div>
+        </div>
+
+        <div class="overround-row">
+          <span class="overround-label">Book margin</span>
+          <span class="overround-value neutral" id="overroundBadge">—</span>
+        </div>
+
+        <!-- Result -->
+        <div class="result-row">
+          <span class="result-label">Result</span>
+          <select class="result-select" id="result" onchange="updateResult()">
+            <option value="">— Select —</option>
+            <option value="teamA">Team A Win</option>
+            <option value="draw">Draw</option>
+            <option value="teamB">Team B Win</option>
+          </select>
+          <span class="result-badge" id="resultBadge"></span>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ── TEAMS DATA ──
+      const TEAMS = [
+        "Arsenal","Aston Villa","Bournemouth","Brentford","Brighton & Hove Albion","Burnley","Chelsea","Crystal Palace","Everton","Fulham","Leeds United","Liverpool","Manchester City","Manchester United","Newcastle United","Nottingham Forest","Sunderland","Tottenham Hotspur","West Ham United","Wolverhampton Wanderers",
+        "Athletic Bilbao","Atlético Madrid","Barcelona","Celta Vigo","Deportivo Alavés","Elche","Espanyol","Getafe","Girona","Levante","Mallorca","Osasuna","Rayo Vallecano","Real Betis","Real Madrid","Real Oviedo","Real Sociedad","Sevilla","Valencia","Villarreal",
+        "AC Milan","Atalanta","Bologna","Cagliari","Como 1907","Cremonese","Fiorentina","Genoa","Hellas Verona","Inter Milan","Juventus","Lazio","Lecce","Napoli","Parma","Pisa","Roma","Sassuolo","Torino","Udinese",
+        "Bayer Leverkusen","Bayern Munich","Borussia Dortmund","Borussia Mönchengladbach","Eintracht Frankfurt","FC Augsburg","FC Köln","FC St. Pauli","Hamburger SV","1. FC Heidenheim","1. FC Union Berlin","1. FSV Mainz 05","RB Leipzig","SC Freiburg","TSG Hoffenheim","VfB Stuttgart","VfL Wolfsburg","Werder Bremen",
+        "AJ Auxerre","Angers","AS Monaco","FC Lorient","FC Metz","FC Nantes","Le Havre","Lens","Lille","Olympique Lyon","Olympique Marseille","Nice","Paris FC","Paris Saint-Germain","Reims","Rennes","Strasbourg","Toulouse",
+        "Birmingham City","Blackburn Rovers","Bristol City","Charlton Athletic","Coventry City","Derby County","Hull City","Ipswich Town","Leicester City","Middlesbrough","Millwall","Norwich City","Oxford United","Portsmouth","Preston North End","Queens Park Rangers","Sheffield United","Sheffield Wednesday","Southampton","Stoke City","Swansea City","Watford","West Bromwich Albion","Wrexham",
+        "Alverca","Arouca","AVS","Benfica","Braga","Casa Pia","Estoril Praia","Estrela da Amadora","Famalicão","Gil Vicente","Moreirense","Nacional","Porto","Rio Ave","Santa Clara","Sporting CP","Tondela","Vitória de Guimarães"
+      ];
+
+      // Populate datalist
+      const dl = document.getElementById("teamsList");
+      TEAMS.forEach(t => {
+        const opt = document.createElement("option");
+        opt.value = t;
+        dl.appendChild(opt);
+      });
+
+      // ── STATE ──
+      let matches = JSON.parse(localStorage.getItem("wp_matches") || "[]");
+      let activeId = null;
+      let oddsFormat = "decimal"; // decimal | fractional | american
+
+      function persist() { localStorage.setItem("wp_matches", JSON.stringify(matches)); }
+
+      // ── ODDS FORMAT ──
+      function setOddsFormat(fmt) {
+        oddsFormat = fmt;
+        document.querySelectorAll(".odds-tab").forEach(t => t.classList.toggle("active", t.dataset.fmt === fmt));
+        const placeholders = { decimal: "2.50", fractional: "6/4", american: "+150" };
+        ["oddsA","oddsD","oddsB"].forEach(id => {
+          document.getElementById(id).placeholder = placeholders[fmt];
+        });
+        updateOdds();
+      }
+
+      // Parse any odds format to decimal
+      function toDecimal(raw) {
+        if (!raw || raw.trim() === "" || raw.trim() === "—") return null;
+        raw = raw.trim();
+        if (oddsFormat === "decimal") {
+          const v = parseFloat(raw);
+          return isNaN(v) || v <= 1 ? null : v;
+        }
+        if (oddsFormat === "fractional") {
+          const parts = raw.split("/");
+          if (parts.length === 2) {
+            const n = parseFloat(parts[0]), d = parseFloat(parts[1]);
+            if (!isNaN(n) && !isNaN(d) && d !== 0) return 1 + n / d;
+          }
+          const v = parseFloat(raw);
+          return isNaN(v) ? null : v + 1;
+        }
+        if (oddsFormat === "american") {
+          const v = parseFloat(raw);
+          if (isNaN(v)) return null;
+          if (v > 0) return 1 + v / 100;
+          if (v < 0) return 1 + 100 / Math.abs(v);
+        }
+        return null;
+      }
+
+      function impliedProb(dec) {
+        if (!dec || dec <= 0) return null;
+        return (1 / dec) * 100;
+      }
+
+      function updateOdds() {
+        const rawA = document.getElementById("oddsA").value;
+        const rawD = document.getElementById("oddsD").value;
+        const rawB = document.getElementById("oddsB").value;
+
+        const decA = toDecimal(rawA);
+        const decD = toDecimal(rawD);
+        const decB = toDecimal(rawB);
+
+        const impA = impliedProb(decA);
+        const impD = impliedProb(decD);
+        const impB = impliedProb(decB);
+
+        function setImplied(id, val) {
+          const el = document.getElementById(id);
+          if (val !== null) {
+            el.innerHTML = `Implied <span>${val.toFixed(1)}%</span>`;
+            el.classList.add("has-value");
+          } else {
+            el.innerHTML = "";
+            el.classList.remove("has-value");
+          }
+        }
+        setImplied("impliedA", impA);
+        setImplied("impliedD", impD);
+        setImplied("impliedB", impB);
+
+        // Overround
+        const badge = document.getElementById("overroundBadge");
+        if (impA !== null && impD !== null && impB !== null) {
+          const total = impA + impD + impB;
+          const margin = total - 100;
+          badge.textContent = (margin >= 0 ? "+" : "") + margin.toFixed(1) + "%";
+          badge.className = "overround-value " + (Math.abs(margin) < 1 ? "low" : margin > 5 ? "high" : "neutral");
+        } else if ([impA, impD, impB].some(v => v !== null)) {
+          const vals = [impA, impD, impB].filter(v => v !== null);
+          const sum = vals.reduce((a, b) => a + b, 0);
+          badge.textContent = sum.toFixed(1) + "%";
+          badge.className = "overround-value neutral";
+        } else {
+          badge.textContent = "—";
+          badge.className = "overround-value neutral";
+        }
+      }
+
+      // ── PROBABILITY ──
+      function updateBar() {
+        const a = parseFloat(document.getElementById("probA").value) || 0;
+        const d = parseFloat(document.getElementById("probD").value) || 0;
+        const b = parseFloat(document.getElementById("probB").value) || 0;
+        const total = a + d + b;
+        const warning = document.getElementById("warning");
+        warning.textContent = total > 0 && Math.round(total) !== 100
+          ? `Probabilities sum to ${total.toFixed(1)}% — should be 100%`
+          : "";
+        document.getElementById("barA").style.width = a + "%";
+        document.getElementById("barD").style.width = d + "%";
+        document.getElementById("barB").style.width = b + "%";
+        document.getElementById("pctA").textContent = a + "%";
+        document.getElementById("pctD").textContent = d + "%";
+        document.getElementById("pctB").textContent = b + "%";
+      }
+
+      function updateLabels() {
+        const a = document.getElementById("teamA").value.trim() || "Team A";
+        const b = document.getElementById("teamB").value.trim() || "Team B";
+        document.getElementById("labelA").textContent = a;
+        document.getElementById("labelB").textContent = b;
+        document.querySelector('#result option[value="teamA"]').textContent = a + " Win";
+        document.querySelector('#result option[value="teamB"]').textContent = b + " Win";
+        // update odds labels
+        document.getElementById("oddsLabelA").textContent = a.length > 10 ? a.slice(0, 10) + "…" : a;
+        document.getElementById("oddsLabelB").textContent = b.length > 10 ? b.slice(0, 10) + "…" : b;
+      }
+
+      function updateResult() {
+        const val = document.getElementById("result").value;
+        const badge = document.getElementById("resultBadge");
+        const a = document.getElementById("teamA").value.trim() || "Team A";
+        const b = document.getElementById("teamB").value.trim() || "Team B";
+        badge.className = "result-badge";
+        if (!val) return;
+        badge.classList.add("visible");
+        if (val === "teamA") { badge.classList.add("win-a"); badge.textContent = a + " Win"; }
+        else if (val === "draw") { badge.classList.add("win-d"); badge.textContent = "Draw"; }
+        else if (val === "teamB") { badge.classList.add("win-b"); badge.textContent = b + " Win"; }
+      }
+
+      // ── SAVE / LOAD ──
+      function saveMatch() {
+        const a = document.getElementById("teamA").value.trim();
+        const b = document.getElementById("teamB").value.trim();
+        const pA = parseFloat(document.getElementById("probA").value) || 0;
+        const pD = parseFloat(document.getElementById("probD").value) || 0;
+        const pB = parseFloat(document.getElementById("probB").value) || 0;
+        const res = document.getElementById("result").value;
+        const oA = document.getElementById("oddsA").value.trim();
+        const oD = document.getElementById("oddsD").value.trim();
+        const oB = document.getElementById("oddsB").value.trim();
+        const oFmt = oddsFormat;
+        if (!a && !b && !pA && !pD && !pB && !oA && !oD && !oB) return;
+
+        if (activeId !== null) {
+          const idx = matches.findIndex(m => m.id === activeId);
+          if (idx !== -1) matches[idx] = { ...matches[idx], teamA: a, teamB: b, probA: pA, probD: pD, probB: pB, result: res, oddsA: oA, oddsD: oD, oddsB: oB, oddsFormat: oFmt };
+        } else {
+          const m = { id: Date.now(), teamA: a, teamB: b, probA: pA, probD: pD, probB: pB, result: res, oddsA: oA, oddsD: oD, oddsB: oB, oddsFormat: oFmt };
+          matches.unshift(m);
+          activeId = m.id;
+        }
+        persist();
+        renderSidebar();
+        flashSave();
+      }
+
+      function flashSave() {
+        const btn = document.getElementById("saveBtn");
+        const icon = document.getElementById("saveIcon");
+        btn.classList.add("saved-flash");
+        icon.innerHTML = `<path d="M2 7l3.5 3.5L12 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+        setTimeout(() => {
+          btn.classList.remove("saved-flash");
+          icon.innerHTML = `<path d="M2 2.5A.5.5 0 0 1 2.5 2h7.086a.5.5 0 0 1 .353.146l1.915 1.915A.5.5 0 0 1 12 4.414V11.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5v-9Z" stroke="currentColor" stroke-width="1.3"/><rect x="4.5" y="2" width="4" height="3" rx=".5" fill="currentColor" opacity=".5"/><rect x="3.5" y="7.5" width="7" height="4" rx=".5" stroke="currentColor" stroke-width="1.3"/>`;
+        }, 1400);
+      }
+
+      function newForm() {
+        activeId = null;
+        ["teamA","teamB","probA","probD","probB","oddsA","oddsD","oddsB"].forEach(id => (document.getElementById(id).value = ""));
+        document.getElementById("result").value = "";
+        document.getElementById("warning").textContent = "";
+        document.getElementById("resultBadge").className = "result-badge";
+        document.getElementById("overroundBadge").textContent = "—";
+        document.getElementById("overroundBadge").className = "overround-value neutral";
+        ["impliedA","impliedD","impliedB"].forEach(id => { document.getElementById(id).innerHTML = ""; document.getElementById(id).classList.remove("has-value"); });
+        updateBar(); updateLabels(); updateResult();
+        document.querySelectorAll(".match-tab").forEach(t => t.classList.remove("active"));
+        animateCard();
+      }
+
+      function loadMatch(id) {
+        const m = matches.find(x => x.id === id);
+        if (!m) return;
+        activeId = id;
+        document.getElementById("teamA").value = m.teamA || "";
+        document.getElementById("teamB").value = m.teamB || "";
+        document.getElementById("probA").value = m.probA || "";
+        document.getElementById("probD").value = m.probD || "";
+        document.getElementById("probB").value = m.probB || "";
+        document.getElementById("result").value = m.result || "";
+        document.getElementById("oddsA").value = m.oddsA || "";
+        document.getElementById("oddsD").value = m.oddsD || "";
+        document.getElementById("oddsB").value = m.oddsB || "";
+        if (m.oddsFormat) setOddsFormat(m.oddsFormat);
+        updateBar(); updateLabels(); updateResult(); updateOdds();
+        document.querySelectorAll(".match-tab").forEach(t => t.classList.toggle("active", parseInt(t.dataset.id) === id));
+        animateCard();
+      }
+
+      function deleteMatch(id, e) {
+        e.stopPropagation();
+        matches = matches.filter(m => m.id !== id);
+        persist();
+        if (activeId === id) newForm();
+        renderSidebar();
+      }
+
+      function animateCard() {
+        const card = document.getElementById("card");
+        card.style.animation = "none";
+        card.offsetHeight;
+        card.style.animation = "cardIn 0.3s cubic-bezier(.4,0,.2,1)";
+      }
+
+      function resultLabel(m) {
+        if (!m.result) return `<span class="match-tab-result none">No result</span>`;
+        const labels = { teamA: m.teamA || "A", draw: "Draw", teamB: m.teamB || "B" };
+        const cls = { teamA: "win-a", draw: "win-d", teamB: "win-b" };
+        return `<span class="match-tab-result ${cls[m.result]}">${labels[m.result]}</span>`;
+      }
+
+      function renderSidebar() {
+        const sidebar = document.getElementById("sidebar");
+        const empty = document.getElementById("emptyState");
+        document.getElementById("savedCount").textContent = matches.length;
+        sidebar.querySelectorAll(".match-tab").forEach(t => t.remove());
+        if (matches.length === 0) { empty.style.display = "block"; return; }
+        empty.style.display = "none";
+        matches.forEach(m => {
+          const title = [m.teamA, m.teamB].filter(Boolean).join(" vs ") || "Untitled Match";
+          const tab = document.createElement("div");
+          tab.className = "match-tab" + (m.id === activeId ? " active" : "");
+          tab.dataset.id = m.id;
+          tab.onclick = () => loadMatch(m.id);
+          tab.innerHTML = `
+            <button class="delete-btn" onclick="deleteMatch(${m.id}, event)">✕</button>
+            <div class="match-tab-title">${title}</div>
+            <div class="match-tab-bar">
+              <div class="mtb-a" style="width:${m.probA || 0}%"></div>
+              <div class="mtb-d" style="width:${m.probD || 0}%"></div>
+              <div class="mtb-b" style="width:${m.probB || 0}%"></div>
+            </div>
+            <div class="match-tab-meta">
+              <div style="display:flex;gap:8px;">
+                <span class="match-tab-pct a">${m.probA || 0}%</span>
+                <span class="match-tab-pct d">${m.probD || 0}%</span>
+                <span class="match-tab-pct b">${m.probB || 0}%</span>
+              </div>
+              ${resultLabel(m)}
+            </div>`;
+          sidebar.appendChild(tab);
+        });
+      }
+
+      // Init
+      setOddsFormat("decimal");
+      renderSidebar();
+    </script>
+  </body>
+</html>

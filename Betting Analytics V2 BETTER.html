@@ -1,0 +1,1784 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Betting Analytics Hub</title>
+
+    <style>
+      :root{
+        --bg: #080c14;
+        --surface: #0f1724;
+        --card: #141e2e;
+        --border: #1e2d42;
+        --border-bright: #2a3f5e;
+        --text: #e2eaf5;
+        --muted: #4d6580;
+        --accent: #3972e4;
+        --accent-glow: rgba(26, 121, 222, 0.467);
+        --green: #27c97c;
+        --red: #f0455a;
+        --amber: #f5a623;
+        --draw: #8897aa;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "DM Mono", monospace;
+        font-size: 14px;
+        line-height: 1.6;
+        min-height: 100vh;
+        padding: 24px 20px 60px;
+      }
+
+      /* ── Header ── */
+      header {
+        text-align: center;
+        margin-bottom: 25px;
+      }
+      header h1 {
+        font-family: "Syne", sans-serif;
+        font-size: clamp(1.6rem, 4vw, 2.4rem);
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        background: linear-gradient(135deg, #e2eaf5 30%, #2f80ed);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      header p {
+        color: var(--muted);
+        margin-top: 4px;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .container {
+        max-width: 1320px;
+        margin: 0 auto;
+      }
+
+      /* ── Dashboard ── */
+      .dashboard {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+        margin-bottom: 28px;
+      }
+      .stat-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 16px 14px;
+        position: relative;
+        overflow: hidden;
+      }
+      .stat-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, var(--accent), transparent);
+      }
+      .stat-card span {
+        display: block;
+        color: var(--muted);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 6px;
+      }
+      .stat-card strong {
+        font-size: 1.35em;
+        font-family: "Syne", sans-serif;
+      }
+      .text-green {
+        color: var(--green) !important;
+      }
+      .text-red {
+        color: var(--red) !important;
+      }
+      .text-muted {
+        color: var(--muted) !important;
+      }
+
+      /* ── Layout ── */
+      .main-grid {
+        display: grid;
+        grid-template-columns: 340px 1fr;
+        gap: 20px;
+        align-items: start;
+      }
+      @media (max-width: 960px) {
+        .main-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .panel {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 22px;
+      }
+      .panel h2 {
+        font-family: "Syne", sans-serif;
+        font-size: 1rem;
+        margin-bottom: 18px;
+        letter-spacing: 0.01em;
+      }
+
+      /* ── Form ── */
+      .form-group {
+        margin-bottom: 13px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        color: var(--muted);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      input,
+      select {
+        width: 100%;
+        padding: 9px 11px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 6px;
+        font-family: "DM Mono", monospace;
+        font-size: 12px;
+        transition: border-color 0.2s;
+        outline: none;
+      }
+      input:focus,
+      select:focus {
+        border-color: var(--accent);
+      }
+      input[readonly] {
+        color: var(--muted);
+        cursor: default;
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      button {
+        width: 100%;
+        padding: 11px;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-family: "Syne", sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        margin-top: 8px;
+        transition:
+          opacity 0.2s,
+          transform 0.1s;
+      }
+      button:hover {
+        opacity: 0.82;
+      }
+      button:active {
+        transform: scale(0.98);
+      }
+      button.update-btn {
+        background: var(--amber);
+        color: #000;
+      }
+      button.cancel-btn {
+        background: var(--border);
+        color: var(--text);
+      }
+
+      /* ── Search ── */
+      #search {
+        margin-bottom: 14px;
+        background: var(--surface);
+        border-color: var(--border);
+      }
+
+      /* ── Table ── */
+      .table-container {
+        overflow-x: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th {
+        color: var(--muted);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-weight: 500;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        white-space: nowrap;
+      }
+      td {
+        padding: 11px 12px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+        font-size: 12px;
+      }
+      tr.clickable-row {
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+      tr.clickable-row:hover td {
+        background: var(--surface);
+      }
+
+      .badge {
+        padding: 3px 9px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 700;
+        font-family: "Syne", sans-serif;
+        display: inline-block;
+        min-width: 60px;
+        text-align: center;
+      }
+      .badge.win {
+        background: rgba(39, 201, 124, 0.12);
+        color: var(--green);
+        border: 1px solid rgba(39, 201, 124, 0.25);
+      }
+      .badge.loss {
+        background: rgba(240, 69, 90, 0.12);
+        color: var(--red);
+        border: 1px solid rgba(240, 69, 90, 0.25);
+      }
+      .badge.draw {
+        background: rgba(136, 151, 170, 0.12);
+        color: var(--draw);
+        border: 1px solid rgba(136, 151, 170, 0.25);
+      }
+      .badge.pending {
+        background: rgba(245, 166, 35, 0.12);
+        color: var(--amber);
+        border: 1px solid rgba(245, 166, 35, 0.25);
+      }
+
+      .profit-cell {
+        font-weight: 700;
+      }
+      .payout-hint {
+        font-size: 10px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+
+      .action-btns {
+        display: flex;
+        gap: 4px;
+      }
+      .icon-btn {
+        background: transparent;
+        width: auto;
+        padding: 4px 7px;
+        margin: 0;
+        font-size: 13px;
+        border-radius: 5px;
+        border: 1px solid var(--border);
+        color: var(--muted);
+      }
+      .icon-btn:hover {
+        opacity: 1;
+        border-color: var(--border-bright);
+        color: var(--text);
+      }
+
+      /* ── Parlay Legs ── */
+      .leg-card {
+        margin-bottom: 12px;
+        padding: 12px;
+        border: 1px dashed var(--border-bright);
+        border-radius: 8px;
+      }
+      .leg-label {
+        display: block;
+        color: var(--accent);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 8px;
+      }
+      .grid-4 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        gap: 8px;
+      }
+
+      /* ── Modal ── */
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(4px);
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+      }
+      .modal-overlay.open {
+        display: flex;
+      }
+      .modal-box {
+        background: var(--card);
+        border: 1px solid var(--border-bright);
+        border-radius: 14px;
+        padding: 28px;
+        max-width: 520px;
+        width: 92%;
+        max-height: 85vh;
+        overflow-y: auto;
+      }
+      .modal-box h2 {
+        font-family: "Syne", sans-serif;
+        margin-bottom: 18px;
+        font-size: 1.1rem;
+      }
+      .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 12px;
+      }
+      .detail-row:last-of-type {
+        border-bottom: none;
+      }
+      .detail-label {
+        color: var(--muted);
+      }
+      .detail-value {
+        text-align: right;
+        max-width: 60%;
+      }
+      .leg-summary {
+        background: var(--surface);
+        border-radius: 8px;
+        padding: 10px 12px;
+        margin-top: 8px;
+        font-size: 11px;
+        line-height: 1.8;
+      }
+      .leg-summary-title {
+        font-family: "Syne", sans-serif;
+        color: var(--accent);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 6px;
+      }
+
+      /* ── Empty State ── */
+      .empty-state {
+        text-align: center;
+        color: var(--muted);
+        padding: 40px 20px;
+      }
+      .empty-state span {
+        font-size: 2em;
+        display: block;
+        margin-bottom: 10px;
+      }
+
+      /* ── Notes field ── */
+      textarea {
+        width: 100%;
+        padding: 9px 11px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 6px;
+        font-family: "DM Mono", monospace;
+        font-size: 12px;
+        transition: border-color 0.2s;
+        outline: none;
+        resize: vertical;
+        min-height: 56px;
+        line-height: 1.5;
+      }
+      textarea:focus {
+        border-color: var(--accent);
+      }
+      .note-hint {
+        font-size: 10px;
+        color: var(--muted);
+        margin-top: 3px;
+        font-style: italic;
+      }
+
+      /* ── Table panel toolbar ── */
+      .table-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .table-toolbar #search {
+        margin-bottom: 0;
+        flex: 1;
+      }
+      .csv-btn {
+        width: auto;
+        padding: 8px 14px;
+        margin: 0;
+        font-size: 11px;
+        background: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--border-bright);
+        border-radius: 6px;
+        white-space: nowrap;
+        font-family: "DM Mono", monospace;
+        font-weight: 500;
+        letter-spacing: 0.04em;
+        cursor: pointer;
+        transition:
+          border-color 0.2s,
+          background 0.2s;
+      }
+      .csv-btn:hover {
+        background: var(--border);
+        border-color: var(--accent);
+        opacity: 1;
+      }
+
+      /* ── Monthly Chart ── */
+      .chart-panel {
+        margin-top: 20px;
+      }
+      .chart-panel h2 {
+        font-family: "Syne", sans-serif;
+        font-size: 1rem;
+        margin-bottom: 18px;
+        letter-spacing: 0.01em;
+      }
+      .chart-bars {
+        display: flex;
+        align-items: flex-end;
+        gap: 6px;
+        height: 120px;
+        padding-bottom: 28px;
+        position: relative;
+      }
+      .chart-bars::after {
+        content: "";
+        position: absolute;
+        bottom: 28px;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: var(--border);
+      }
+      .chart-col {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        height: 100%;
+        justify-content: flex-end;
+        position: relative;
+      }
+      .chart-bar-wrap {
+        width: 100%;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        flex: 1;
+      }
+      .chart-bar {
+        width: 70%;
+        border-radius: 3px 3px 0 0;
+        min-height: 2px;
+        transition: opacity 0.15s;
+        position: relative;
+      }
+      .chart-bar:hover {
+        opacity: 0.75;
+      }
+      .chart-bar.positive {
+        background: var(--green);
+      }
+      .chart-bar.negative {
+        background: var(--red);
+        border-radius: 0 0 3px 3px;
+        align-self: flex-start;
+      }
+      .chart-label {
+        font-size: 9px;
+        color: var(--muted);
+        text-align: center;
+        white-space: nowrap;
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+      .chart-value {
+        font-size: 9px;
+        font-family: "Syne", sans-serif;
+        text-align: center;
+        white-space: nowrap;
+        position: absolute;
+        top: -16px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+      .chart-value.positive {
+        color: var(--green);
+      }
+      .chart-value.negative {
+        color: var(--red);
+      }
+      .chart-empty {
+        text-align: center;
+        color: var(--muted);
+        font-size: 12px;
+        padding: 30px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>📈 Betting Analytics Hub</h1>
+        <p>Track · Analyse · Improve</p>
+      </header>
+
+      <!-- Dashboard -->
+      <div class="dashboard" id="dashboard">
+        <div class="stat-card">
+          <span>Net Profit / Loss</span><strong id="stat-pl">R0.00</strong>
+        </div>
+        <!-- CHANGED: was "Today's Stake" → now "Total Bets" -->
+        <div class="stat-card">
+          <span>Total Bets</span><strong id="stat-total-bets">0</strong>
+        </div>
+        <!-- CHANGED: was "Today's P/L" → now "This Week's P/L" -->
+        <div class="stat-card">
+          <span>This Week's P/L</span><strong id="stat-week-pl">R0.00</strong>
+        </div>
+        <div class="stat-card">
+          <span>ROI</span><strong id="stat-roi">0%</strong>
+        </div>
+        <div class="stat-card">
+          <span>Win Rate</span><strong id="stat-winrate">0%</strong>
+        </div>
+        <div class="stat-card">
+          <span>Losing Streak</span><strong id="stat-streak">0</strong>
+        </div>
+        <div class="stat-card">
+          <span>Total Staked</span><strong id="stat-total-staked">R0.00</strong>
+        </div>
+        <div class="stat-card">
+          <span>Total Won</span><strong id="stat-total-won">R0.00</strong>
+        </div>
+      </div>
+
+      <div class="main-grid">
+        <!-- Form Panel -->
+        <div class="panel">
+          <h2 id="formTitle">📝 Log New Bet</h2>
+          <form id="betForm" novalidate>
+            <div id="singleBetSection">
+              <div class="grid-2">
+                <div class="form-group">
+                  <label>Team A (Home)</label>
+                  <input
+                    type="text"
+                    id="teamA"
+                    list="teamList"
+                    placeholder="e.g. Arsenal"
+                  />
+                </div>
+                <div class="form-group">
+                  <label>Team B (Away)</label>
+                  <input
+                    type="text"
+                    id="teamB"
+                    list="teamList"
+                    placeholder="e.g. Chelsea"
+                  />
+                </div>
+              </div>
+              <datalist id="teamList"></datalist>
+
+              <div class="form-group">
+                <label>Your Pick</label>
+                <select id="prediction">
+                  <option value="">-- Select Pick --</option>
+                  <option id="optTeamA" value="">Team A</option>
+                  <option id="optTeamB" value="">Team B</option>
+                  <option value="Draw">Draw</option>
+                  <option value="Other">Other / BTTS / Over-Under</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Actual Outcome</label>
+                <select id="outcome">
+                  <option value="">-- Pick Outcome --</option>
+                  <option id="outTeamA" value="">Team A</option>
+                  <option id="outTeamB" value="">Team B</option>
+                  <option value="Draw">Draw</option>
+                  <option value="Pending">Pending</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Date</label>
+                <input type="date" id="date" required />
+              </div>
+              <div class="form-group">
+                <label>Time</label>
+                <input type="time" id="time" required />
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Odds (Decimal)</label>
+                <input
+                  type="number"
+                  id="odds"
+                  step="0.01"
+                  min="1.01"
+                  placeholder="2.10"
+                  required
+                />
+              </div>
+              <div class="form-group">
+                <label>Stake (R)</label>
+                <input
+                  type="number"
+                  id="stake"
+                  step="0.01"
+                  min="0.01"
+                  placeholder="R50"
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Bet Type</label>
+              <select id="betType" required>
+                <option value="1x2">1x2</option>
+                <option value="BTTS(GG/NG)">BTTS (GG/NG)</option>
+                <option value="Draw/No Bet">Draw/No Bet</option>
+                <option value="Parlay">Parlay</option>
+              </select>
+            </div>
+
+            <!-- Parlay Section -->
+            <div id="parlaySection" style="display: none; margin-top: 12px">
+              <div class="form-group">
+                <label>Number of Legs</label>
+                <select id="legCount">
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                  <option value="6">6</option>
+                  <option value="7">7</option>
+                </select>
+              </div>
+              <div id="legsContainer"></div>
+            </div>
+
+            <div class="form-group">
+              <label>Notes (optional)</label>
+              <textarea
+                id="betNotes"
+                placeholder="e.g. Late lineup change, gut feel, weather conditions…"
+              ></textarea>
+              <div class="note-hint">
+                Saved with the bet — helps you spot patterns later.
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Expected Return</label>
+              <input
+                type="text"
+                id="expectedReturn"
+                readonly
+                placeholder="R0.00"
+              />
+            </div>
+
+            <button type="submit" id="submitBtn">Log Bet</button>
+            <button
+              type="button"
+              id="cancelEditBtn"
+              class="cancel-btn"
+              style="display: none"
+            >
+              Cancel Edit
+            </button>
+          </form>
+        </div>
+
+        <!-- Table Panel -->
+        <div class="panel">
+          <h2>🗂️ Audit Trail</h2>
+          <div class="table-toolbar">
+            <input id="search" type="text" placeholder="Search teams…" />
+            <button type="button" class="csv-btn" onclick="exportCSV()">
+              ⬇ Export CSV
+            </button>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date / Time</th>
+                  <th>Matchup</th>
+                  <th>Pick</th>
+                  <th>Outcome</th>
+                  <th>Type / Odds</th>
+                  <th>Stake</th>
+                  <th>Status</th>
+                  <th>Profit / Payout</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="historyTable"></tbody>
+            </table>
+            <div id="emptyState" class="empty-state" style="display: none">
+              <span>🎲</span>No bets logged yet. Add your first bet!
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly Chart -->
+    <div class="container">
+      <div class="panel chart-panel" style="margin-top: 20px">
+        <h2>📊 Monthly P/L</h2>
+        <div id="monthlyChart"></div>
+      </div>
+    </div>
+    <div class="modal-overlay" id="betModal">
+      <div class="modal-box">
+        <h2>🔍 Bet Details</h2>
+        <div id="betDetails"></div>
+        <button onclick="closeBetModal()" style="margin-top: 20px">
+          Close
+        </button>
+      </div>
+    </div>
+
+    <script>
+      // ════════════════════════════════════════════
+      //  STATE
+      // ════════════════════════════════════════════
+      let bets = JSON.parse(localStorage.getItem("betting_data") || "[]");
+      let editingId = null;
+
+      // ════════════════════════════════════════════
+      //  TEAMS DATALIST
+      // ════════════════════════════════════════════
+      const TEAMS = [
+        "Arsenal",
+        "Aston Villa",
+        "Bournemouth",
+        "Brentford",
+        "Brighton & Hove Albion",
+        "Burnley",
+        "Chelsea",
+        "Crystal Palace",
+        "Everton",
+        "Fulham",
+        "Leeds United",
+        "Liverpool",
+        "Manchester City",
+        "Manchester United",
+        "Newcastle United",
+        "Nottingham Forest",
+        "Sunderland",
+        "Tottenham Hotspur",
+        "West Ham United",
+        "Wolverhampton Wanderers",
+        "Athletic Bilbao",
+        "Atlético Madrid",
+        "Barcelona",
+        "Celta Vigo",
+        "Deportivo Alavés",
+        "Elche",
+        "Espanyol",
+        "Getafe",
+        "Girona",
+        "Levante",
+        "Mallorca",
+        "Osasuna",
+        "Rayo Vallecano",
+        "Real Betis",
+        "Real Madrid",
+        "Real Oviedo",
+        "Real Sociedad",
+        "Sevilla",
+        "Valencia",
+        "Villarreal",
+        "AC Milan",
+        "Atalanta",
+        "Bologna",
+        "Cagliari",
+        "Como 1907",
+        "Cremonese",
+        "Fiorentina",
+        "Genoa",
+        "Hellas Verona",
+        "Inter Milan",
+        "Juventus",
+        "Lazio",
+        "Lecce",
+        "Napoli",
+        "Parma",
+        "Pisa",
+        "Roma",
+        "Sassuolo",
+        "Torino",
+        "Udinese",
+        "Bayer Leverkusen",
+        "Bayern Munich",
+        "Borussia Dortmund",
+        "Borussia Mönchengladbach",
+        "Eintracht Frankfurt",
+        "FC Augsburg",
+        "FC Köln",
+        "FC St. Pauli",
+        "Hamburger SV",
+        "1. FC Heidenheim",
+        "1. FC Union Berlin",
+        "1. FSV Mainz 05",
+        "RB Leipzig",
+        "SC Freiburg",
+        "TSG Hoffenheim",
+        "VfB Stuttgart",
+        "VfL Wolfsburg",
+        "Werder Bremen",
+        "AJ Auxerre",
+        "Angers",
+        "AS Monaco",
+        "FC Lorient",
+        "FC Metz",
+        "FC Nantes",
+        "Le Havre",
+        "Lens",
+        "Lille",
+        "Olympique Lyon",
+        "Olympique Marseille",
+        "Nice",
+        "Paris FC",
+        "Paris Saint-Germain",
+        "Reims",
+        "Rennes",
+        "Strasbourg",
+        "Toulouse",
+        "Birmingham City",
+        "Blackburn Rovers",
+        "Bristol City",
+        "Charlton Athletic",
+        "Coventry City",
+        "Derby County",
+        "Hull City",
+        "Ipswich Town",
+        "Leicester City",
+        "Middlesbrough",
+        "Millwall",
+        "Norwich City",
+        "Oxford United",
+        "Portsmouth",
+        "Preston North End",
+        "Queens Park Rangers",
+        "Sheffield United",
+        "Sheffield Wednesday",
+        "Southampton",
+        "Stoke City",
+        "Swansea City",
+        "Watford",
+        "West Bromwich Albion",
+        "Wrexham",
+        "Alverca",
+        "Arouca",
+        "AVS",
+        "Benfica",
+        "Braga",
+        "Casa Pia",
+        "Estoril Praia",
+        "Estrela da Amadora",
+        "Famalicão",
+        "Gil Vicente",
+        "Moreirense",
+        "Nacional",
+        "Porto",
+        "Rio Ave",
+        "Santa Clara",
+        "Sporting CP",
+        "Tondela",
+        "Vitória de Guimarães",
+      ];
+
+      (function populateTeamList() {
+        const dl = document.getElementById("teamList");
+        TEAMS.forEach((t) => {
+          const o = document.createElement("option");
+          o.value = t;
+          dl.appendChild(o);
+        });
+      })();
+
+      // ════════════════════════════════════════════
+      //  DOM REFS
+      // ════════════════════════════════════════════
+      const form = document.getElementById("betForm");
+      const teamAInput = document.getElementById("teamA");
+      const teamBInput = document.getElementById("teamB");
+      const predictionSel = document.getElementById("prediction");
+      const outcomeSel = document.getElementById("outcome");
+      const oddsInput = document.getElementById("odds");
+      const stakeInput = document.getElementById("stake");
+      const expectedReturn = document.getElementById("expectedReturn");
+      const betTypeSelect = document.getElementById("betType");
+      const parlaySection = document.getElementById("parlaySection");
+      const legCountSelect = document.getElementById("legCount");
+      const legsContainer = document.getElementById("legsContainer");
+      const submitBtn = document.getElementById("submitBtn");
+      const cancelEditBtn = document.getElementById("cancelEditBtn");
+      const historyTable = document.getElementById("historyTable");
+      const searchInput = document.getElementById("search");
+      const emptyState = document.getElementById("emptyState");
+      const betNotesInput = document.getElementById("betNotes");
+
+      // ════════════════════════════════════════════
+      //  DYNAMIC DROPDOWNS
+      // ════════════════════════════════════════════
+      function updateMainDropdowns() {
+        const a = teamAInput.value || "Team A";
+        const b = teamBInput.value || "Team B";
+        const curOptA = document.getElementById("optTeamA");
+        const curOptB = document.getElementById("optTeamB");
+        const curOutA = document.getElementById("outTeamA");
+        const curOutB = document.getElementById("outTeamB");
+        if (curOptA) {
+          curOptA.textContent = a;
+          curOptA.value = a;
+        }
+        if (curOptB) {
+          curOptB.textContent = b;
+          curOptB.value = b;
+        }
+        if (curOutA) {
+          curOutA.textContent = a;
+          curOutA.value = a;
+        }
+        if (curOutB) {
+          curOutB.textContent = b;
+          curOutB.value = b;
+        }
+      }
+      teamAInput.addEventListener("input", updateMainDropdowns);
+      teamBInput.addEventListener("input", updateMainDropdowns);
+      updateMainDropdowns();
+
+      // ════════════════════════════════════════════
+      //  EXPECTED RETURN CALCULATOR
+      // ════════════════════════════════════════════
+      function calcExpected() {
+        const odds = parseFloat(oddsInput.value) || 0;
+        const stake = parseFloat(stakeInput.value) || 0;
+        expectedReturn.value =
+          odds && stake ? "R" + (odds * stake).toFixed(2) : "";
+      }
+      oddsInput.addEventListener("input", calcExpected);
+      stakeInput.addEventListener("input", calcExpected);
+
+      // ════════════════════════════════════════════
+      //  PARLAY TOGGLE
+      // ════════════════════════════════════════════
+      betTypeSelect.addEventListener("change", function () {
+        const isParlay = this.value === "Parlay";
+        parlaySection.style.display = isParlay ? "block" : "none";
+        document.getElementById("singleBetSection").style.display = isParlay
+          ? "none"
+          : "block";
+        oddsInput.readOnly = isParlay;
+        if (isParlay) {
+          generateLegInputs();
+        } else {
+          legsContainer.innerHTML = "";
+        }
+        if (!isParlay) updatePickOutcomeDropdowns(this.value);
+      });
+
+      function updatePickOutcomeDropdowns(betType) {
+        const isBTTS = betType === "BTTS(GG/NG)";
+        const pred = document.getElementById("prediction");
+        const out = document.getElementById("outcome");
+        const savedPred = pred.value;
+        const savedOut = out.value;
+
+        if (isBTTS) {
+          pred.innerHTML = `<option value="">-- Select Pick --</option><option value="Yes">Yes (GG)</option><option value="No">No (NG)</option>`;
+          out.innerHTML = `<option value="">-- Pick Outcome --</option><option value="Yes">Yes (GG)</option><option value="No">No (NG)</option><option value="Pending">Pending</option>`;
+        } else {
+          pred.innerHTML = `<option value="">-- Select Pick --</option><option id="optTeamA" value="">${teamAInput.value || "Team A"}</option><option id="optTeamB" value="">${teamBInput.value || "Team B"}</option><option value="Draw">Draw</option><option value="Other">Other / BTTS / Over-Under</option>`;
+          out.innerHTML = `<option value="">-- Pick Outcome --</option><option id="outTeamA" value="">${teamAInput.value || "Team A"}</option><option id="outTeamB" value="">${teamBInput.value || "Team B"}</option><option value="Draw">Draw</option><option value="Pending">Pending</option>`;
+          updateMainDropdowns();
+        }
+
+        if ([...pred.options].some((o) => o.value === savedPred))
+          pred.value = savedPred;
+        if ([...out.options].some((o) => o.value === savedOut))
+          out.value = savedOut;
+      }
+
+      legCountSelect.addEventListener("change", generateLegInputs);
+
+      function generateLegInputs() {
+        const count = parseInt(legCountSelect.value);
+        legsContainer.innerHTML = "";
+        for (let i = 1; i <= count; i++) {
+          const div = document.createElement("div");
+          div.className = "leg-card";
+          div.innerHTML = `
+            <span class="leg-label">Leg ${i}</span>
+            <div class="grid-2" style="margin-bottom:8px;">
+              <input type="text" placeholder="Home Team" class="leg-teamA" list="teamList" />
+              <input type="text" placeholder="Away Team" class="leg-teamB" list="teamList" />
+            </div>
+            <div class="grid-4">
+              <select class="leg-bet-type">
+                <option value="">Type</option>
+                <option value="1x2">1x2</option>
+                <option value="BTTS(GG/NG)">BTTS</option>
+                <option value="Draw/No Bet">DNB</option>
+              </select>
+              <input type="number" placeholder="Odds" step="0.01" min="1.01" class="leg-odds" />
+              <select class="leg-prediction">
+                <option value="">Pick</option>
+                <option class="leg-opt-a">Team A</option>
+                <option class="leg-opt-b">Team B</option>
+                <option value="Draw">Draw</option>
+              </select>
+              <select class="leg-outcome">
+                <option value="">Result</option>
+                <option class="leg-out-a">Team A</option>
+                <option class="leg-out-b">Team B</option>
+                <option value="Draw">Draw</option>
+                <option value="Pending">Pending</option>
+              </select>
+            </div>`;
+          legsContainer.appendChild(div);
+
+          const tA = div.querySelector(".leg-teamA");
+          const tB = div.querySelector(".leg-teamB");
+          const pred = div.querySelector(".leg-prediction");
+          const out = div.querySelector(".leg-outcome");
+          const type = div.querySelector(".leg-bet-type");
+
+          const updateLegTeams = () => {
+            const a = tA.value || "Team A",
+              b = tB.value || "Team B";
+            const oA = div.querySelector(".leg-opt-a");
+            const oB = div.querySelector(".leg-opt-b");
+            const uA = div.querySelector(".leg-out-a");
+            const uB = div.querySelector(".leg-out-b");
+            if (oA) {
+              oA.textContent = a;
+              oA.value = a;
+            }
+            if (oB) {
+              oB.textContent = b;
+              oB.value = b;
+            }
+            if (uA) {
+              uA.textContent = a;
+              uA.value = a;
+            }
+            if (uB) {
+              uB.textContent = b;
+              uB.value = b;
+            }
+          };
+
+          const updateLegDropdownType = () => {
+            const isBTTS = type.value === "BTTS(GG/NG)";
+            if (isBTTS) {
+              pred.innerHTML = `<option value="">Pick</option><option value="Yes">Yes (GG)</option><option value="No">No (NG)</option>`;
+              out.innerHTML = `<option value="">Result</option><option value="Yes">Yes (GG)</option><option value="No">No (NG)</option><option value="Pending">Pending</option>`;
+            } else {
+              const a = tA.value || "Team A",
+                b = tB.value || "Team B";
+              pred.innerHTML = `<option value="">Pick</option><option class="leg-opt-a" value="${a}">${a}</option><option class="leg-opt-b" value="${b}">${b}</option><option value="Draw">Draw</option>`;
+              out.innerHTML = `<option value="">Result</option><option class="leg-out-a" value="${a}">${a}</option><option class="leg-out-b" value="${b}">${b}</option><option value="Draw">Draw</option><option value="Pending">Pending</option>`;
+            }
+          };
+
+          tA.addEventListener("input", updateLegTeams);
+          tB.addEventListener("input", updateLegTeams);
+          type.addEventListener("change", updateLegDropdownType);
+          div
+            .querySelector(".leg-odds")
+            .addEventListener("input", calcParlayOdds);
+        }
+      }
+
+      function calcParlayOdds() {
+        const inputs = document.querySelectorAll(".leg-odds");
+        let combined = 1;
+        inputs.forEach((inp) => {
+          const v = parseFloat(inp.value);
+          if (!isNaN(v) && v > 0) combined *= v;
+        });
+        oddsInput.value = combined.toFixed(2);
+        calcExpected();
+      }
+
+      // ════════════════════════════════════════════
+      //  RESOLVE BET
+      // ════════════════════════════════════════════
+      function resolveBet(pick, result, odds, stake, betType) {
+        const expectedPayout = odds * stake;
+        if (result === "Pending") return { status: "Pending", profit: 0 };
+        if (betType === "Draw/No Bet" && result === "Draw")
+          return { status: "Draw", profit: 0 };
+        if (pick === result)
+          return {
+            status: "Win",
+            profit: +(expectedPayout - stake).toFixed(2),
+          };
+        return { status: "Loss", profit: -stake };
+      }
+
+      // ════════════════════════════════════════════
+      //  FORM SUBMIT
+      // ════════════════════════════════════════════
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const odds = parseFloat(oddsInput.value);
+        const stake = parseFloat(stakeInput.value);
+        if (!odds || !stake) return alert("Please fill in Odds and Stake.");
+
+        const betType = betTypeSelect.value;
+        const payout = +(odds * stake).toFixed(2);
+        let status,
+          profit,
+          legs = null;
+
+        if (betType === "Parlay") {
+          legs = [];
+          let allWon = true;
+          let anyPending = false;
+
+          document.querySelectorAll(".leg-card").forEach((card) => {
+            const tA = card.querySelector(".leg-teamA").value;
+            const tB = card.querySelector(".leg-teamB").value;
+            const lOdds =
+              parseFloat(card.querySelector(".leg-odds").value) || 1;
+            const pick = card.querySelector(".leg-prediction").value;
+            const res = card.querySelector(".leg-outcome").value;
+            const type = card.querySelector(".leg-bet-type").value;
+
+            const resolved = resolveBet(pick, res, lOdds, 0, type);
+            if (resolved.status === "Pending") anyPending = true;
+            if (resolved.status !== "Win") allWon = false;
+
+            legs.push({
+              match: `${tA} vs ${tB}`,
+              betType: type,
+              odds: lOdds,
+              prediction: pick,
+              outcome: res,
+              status: resolved.status,
+            });
+          });
+
+          if (anyPending) {
+            status = "Pending";
+            profit = 0;
+          } else if (allWon) {
+            status = "Win";
+            profit = +(payout - stake).toFixed(2);
+          } else {
+            status = "Loss";
+            profit = -stake;
+          }
+        } else {
+          const pick = predictionSel.value;
+          const res = outcomeSel.value;
+          if (!pick || !res)
+            return alert("Please fill in Your Pick and Actual Outcome.");
+          ({ status, profit } = resolveBet(pick, res, odds, stake, betType));
+        }
+
+        const betData = {
+          teamA: teamAInput.value,
+          teamB: teamBInput.value,
+          prediction: predictionSel.value,
+          outcome: outcomeSel.value,
+          date: document.getElementById("date").value,
+          time: document.getElementById("time").value,
+          odds,
+          stake,
+          betType,
+          payout,
+          status,
+          profit,
+          legs,
+          notes: betNotesInput.value.trim(),
+        };
+
+        if (editingId) {
+          const idx = bets.findIndex((b) => b.id === editingId);
+          if (idx > -1) bets[idx] = { ...bets[idx], ...betData };
+          resetEditState();
+        } else {
+          bets.unshift({ id: Date.now().toString(), ...betData });
+        }
+
+        saveData();
+        form.reset();
+        betNotesInput.value = "";
+        expectedReturn.value = "";
+        document.getElementById("date").valueAsDate = new Date();
+        parlaySection.style.display = "none";
+        document.getElementById("singleBetSection").style.display = "block";
+        oddsInput.readOnly = false;
+        updatePickOutcomeDropdowns("1x2");
+        updateMainDropdowns();
+        renderTable();
+        updateDashboard();
+        renderMonthlyChart();
+      });
+
+      // ════════════════════════════════════════════
+      //  EDIT / DELETE
+      // ════════════════════════════════════════════
+      function deleteBet(id) {
+        if (!confirm("Delete this bet?")) return;
+        bets = bets.filter((b) => b.id !== id);
+        saveData();
+        renderTable();
+        updateDashboard();
+        renderMonthlyChart();
+      }
+
+      function editBet(id) {
+        const bet = bets.find((b) => b.id === id);
+        if (!bet) return;
+        editingId = id;
+
+        teamAInput.value = bet.teamA || "";
+        teamBInput.value = bet.teamB || "";
+        updateMainDropdowns();
+        document.getElementById("date").value = bet.date;
+        document.getElementById("time").value = bet.time;
+        oddsInput.value = bet.odds;
+        stakeInput.value = bet.stake;
+        betTypeSelect.value = bet.betType;
+        updatePickOutcomeDropdowns(bet.betType);
+        predictionSel.value = bet.prediction;
+        outcomeSel.value = bet.outcome;
+
+        if (bet.betType === "Parlay") {
+          parlaySection.style.display = "block";
+          document.getElementById("singleBetSection").style.display = "none";
+          oddsInput.readOnly = true;
+          legCountSelect.value = bet.legs ? bet.legs.length : 2;
+          generateLegInputs();
+
+          if (bet.legs) {
+            const cards = legsContainer.querySelectorAll(".leg-card");
+            bet.legs.forEach((leg, i) => {
+              if (!cards[i]) return;
+              const parts = leg.match ? leg.match.split(" vs ") : ["", ""];
+              cards[i].querySelector(".leg-teamA").value = parts[0] || "";
+              cards[i].querySelector(".leg-teamB").value = parts[1] || "";
+              cards[i].querySelector(".leg-bet-type").value = leg.betType || "";
+              cards[i].querySelector(".leg-odds").value = leg.odds || "";
+              cards[i].querySelector(".leg-prediction").value =
+                leg.prediction || "";
+              cards[i].querySelector(".leg-outcome").value = leg.outcome || "";
+            });
+          }
+        } else {
+          parlaySection.style.display = "none";
+          document.getElementById("singleBetSection").style.display = "block";
+          oddsInput.readOnly = false;
+        }
+
+        calcExpected();
+        betNotesInput.value = bet.notes || "";
+        submitBtn.textContent = "Update Bet";
+        submitBtn.classList.add("update-btn");
+        cancelEditBtn.style.display = "block";
+        document.getElementById("formTitle").textContent = "✏️ Edit Bet";
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      function resetEditState() {
+        editingId = null;
+        submitBtn.textContent = "Log Bet";
+        submitBtn.classList.remove("update-btn");
+        cancelEditBtn.style.display = "none";
+        document.getElementById("formTitle").textContent = "📝 Log New Bet";
+      }
+
+      cancelEditBtn.addEventListener("click", () => {
+        form.reset();
+        betNotesInput.value = "";
+        resetEditState();
+        parlaySection.style.display = "none";
+        document.getElementById("singleBetSection").style.display = "block";
+        oddsInput.readOnly = false;
+        expectedReturn.value = "";
+        updatePickOutcomeDropdowns("1x2");
+        updateMainDropdowns();
+        document.getElementById("date").valueAsDate = new Date();
+      });
+
+      // ════════════════════════════════════════════
+      //  MODAL
+      // ════════════════════════════════════════════
+      function viewBet(id) {
+        const bet = bets.find((b) => b.id === id);
+        if (!bet) return;
+
+        const fmt = (n) => "R" + parseFloat(n).toFixed(2);
+        const rows = [
+          [
+            "Match",
+            bet.betType === "Parlay"
+              ? `${bet.legs?.length}-Leg Parlay`
+              : `${bet.teamA} vs ${bet.teamB}`,
+          ],
+          ["Date / Time", `${bet.date} @ ${bet.time}`],
+          ["Bet Type", bet.betType],
+          ["Your Pick", bet.prediction || "—"],
+          ["Actual Outcome", bet.outcome || "—"],
+          ["Odds", `@${parseFloat(bet.odds).toFixed(2)}`],
+          ["Stake", fmt(bet.stake)],
+          ["Potential Payout", fmt(bet.payout)],
+          [
+            "Status",
+            `<span class="badge ${bet.status.toLowerCase()}">${bet.status}</span>`,
+          ],
+          [
+            "Profit / Loss",
+            `<span class="${bet.profit >= 0 ? "text-green" : "text-red"}">${bet.profit >= 0 ? "+" : ""}${fmt(bet.profit)}</span>`,
+          ],
+          ...(bet.notes
+            ? [
+                [
+                  "Notes",
+                  `<span style="font-style:italic;color:var(--muted)">${bet.notes}</span>`,
+                ],
+              ]
+            : []),
+        ];
+
+        let html = rows
+          .map(
+            ([label, val]) =>
+              `<div class="detail-row"><span class="detail-label">${label}</span><span class="detail-value">${val}</span></div>`,
+          )
+          .join("");
+
+        if (bet.betType === "Parlay" && bet.legs?.length) {
+          html += `<div style="margin-top:16px;"><div class="leg-summary-title">Parlay Legs</div>`;
+          bet.legs.forEach((leg, i) => {
+            const legStatus =
+              leg.status ||
+              (leg.prediction === leg.outcome
+                ? "Win"
+                : leg.outcome === "Pending"
+                  ? "Pending"
+                  : "Loss");
+            html += `<div class="leg-summary"><strong>Leg ${i + 1}: ${leg.match}</strong><br>Type: ${leg.betType} &nbsp;|&nbsp; Odds: @${parseFloat(leg.odds).toFixed(2)}<br>Pick: ${leg.prediction} &nbsp;→&nbsp; Result: ${leg.outcome} &nbsp;<span class="badge ${legStatus.toLowerCase()}">${legStatus}</span></div>`;
+          });
+          html += "</div>";
+        }
+
+        document.getElementById("betDetails").innerHTML = html;
+        document.getElementById("betModal").classList.add("open");
+      }
+
+      function closeBetModal() {
+        document.getElementById("betModal").classList.remove("open");
+      }
+
+      document
+        .getElementById("betModal")
+        .addEventListener("click", function (e) {
+          if (e.target === this) closeBetModal();
+        });
+
+      // ════════════════════════════════════════════
+      //  STORAGE
+      // ════════════════════════════════════════════
+      function saveData() {
+        localStorage.setItem("betting_data", JSON.stringify(bets));
+      }
+
+      // ════════════════════════════════════════════
+      //  RENDER TABLE
+      // ════════════════════════════════════════════
+      searchInput.addEventListener("input", renderTable);
+
+      function renderTable() {
+        const query = searchInput.value.toLowerCase();
+        const filtered = query
+          ? bets.filter((b) => {
+              if (`${b.teamA} ${b.teamB}`.toLowerCase().includes(query))
+                return true;
+              if (
+                b.betType === "Parlay" &&
+                b.legs?.some((leg) =>
+                  (leg.match || "").toLowerCase().includes(query),
+                )
+              )
+                return true;
+              return false;
+            })
+          : bets;
+
+        historyTable.innerHTML = "";
+        emptyState.style.display = filtered.length === 0 ? "block" : "none";
+
+        filtered.forEach((bet) => {
+          const matchup =
+            bet.betType === "Parlay"
+              ? `<strong>${bet.legs?.length ?? "?"}-Leg Parlay</strong>${bet.notes ? `<div class="note-hint">${bet.notes}</div>` : ""}`
+              : `${bet.teamA} vs ${bet.teamB}${bet.notes ? `<div class="note-hint">${bet.notes}</div>` : ""}`;
+
+          const safePayout =
+            parseFloat(bet.payout) ||
+            parseFloat(bet.odds) * parseFloat(bet.stake) ||
+            0;
+
+          let pickIcon = "";
+          if (bet.status !== "Pending" && bet.betType !== "Parlay") {
+            pickIcon =
+              bet.prediction === bet.outcome
+                ? ' <span style="color:var(--green)">✔</span>'
+                : ' <span style="color:var(--red)">✘</span>';
+          }
+
+          let profitHTML = "—";
+          if (bet.status === "Win") {
+            profitHTML = `<div class="profit-cell text-green">+R${bet.profit.toFixed(2)}</div>`;
+          } else if (bet.status === "Loss") {
+            profitHTML = `<div class="profit-cell text-red">−R${Math.abs(bet.profit).toFixed(2)}</div><div class="payout-hint">would've paid R${safePayout.toFixed(2)}</div>`;
+          } else if (bet.status === "Draw") {
+            profitHTML = `<div class="profit-cell text-muted">Stake returned</div>`;
+          } else {
+            profitHTML = `<div class="payout-hint">potential R${safePayout.toFixed(2)}</div>`;
+          }
+
+          const tr = document.createElement("tr");
+          tr.className = "clickable-row";
+          tr.innerHTML = `
+            <td>${bet.date}<br><span style="color:var(--muted);font-size:11px">${bet.time}</span></td>
+            <td>${matchup}</td>
+            <td>${bet.prediction || "—"}${pickIcon}</td>
+            <td>${bet.outcome || "—"}</td>
+            <td>${bet.betType}<br><span style="color:var(--muted);font-size:11px">@${parseFloat(bet.odds).toFixed(2)}</span></td>
+            <td>R${parseFloat(bet.stake).toFixed(2)}</td>
+            <td><span class="badge ${bet.status.toLowerCase()}">${bet.status}</span></td>
+            <td>${profitHTML}</td>
+            <td class="action-btns" onclick="event.stopPropagation()">
+              <button type="button" class="icon-btn" onclick="editBet('${bet.id}')">✏️</button>
+              <button type="button" class="icon-btn" onclick="deleteBet('${bet.id}')">🗑️</button>
+            </td>`;
+          tr.addEventListener("click", () => viewBet(bet.id));
+          historyTable.appendChild(tr);
+        });
+      }
+
+      // ════════════════════════════════════════════
+      //  DASHBOARD — UPDATED
+      // ════════════════════════════════════════════
+      function updateDashboard() {
+        let totalProfit = 0,
+          totalStake = 0,
+          totalStaked = 0,
+          totalWon = 0;
+        let wins = 0,
+          settled = 0;
+        let weekProfit = 0; // ← NEW: replaces todayProfit
+        let streak = 0,
+          streakActive = true;
+
+        // ── Compute "Monday of current week" as a YYYY-MM-DD string ──
+        // This Week's P/L covers Monday 00:00 → today.
+        // How it works:
+        //   1. Get today as a Date object.
+        //   2. getDay() returns 0=Sun, 1=Mon … 6=Sat.
+        //   3. We subtract (day - 1) days to land on Monday.
+        //      Edge case: Sunday (0) → we go back 6 days so it still lands on Mon.
+        //   4. Zero out the time so we compare date strings cleanly.
+        //   5. Convert to ISO string and slice to "YYYY-MM-DD".
+        const today = new Date();
+        const dayOfWeek = today.getDay(); // 0-6
+        const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Sun=6 offset, else day-1
+        const monday = new Date(today);
+        monday.setDate(today.getDate() - daysToMonday);
+        monday.setHours(0, 0, 0, 0);
+        const mondayStr = monday.toISOString().split("T")[0]; // "YYYY-MM-DD"
+        const todayStr = today.toISOString().split("T")[0]; // "YYYY-MM-DD"
+
+        bets.forEach((bet) => {
+          if (bet.status !== "Pending") {
+            totalProfit += bet.profit;
+            totalStake += bet.stake;
+            totalStaked += bet.stake;
+            settled++;
+            if (bet.status === "Win") {
+              wins++;
+              totalWon += bet.payout;
+            }
+            if (streakActive) {
+              if (bet.status === "Loss") streak++;
+              else streakActive = false;
+            }
+
+            // ── Week filter: bet.date falls between Monday and today ──
+            // bet.date is stored as "YYYY-MM-DD" so string comparison works
+            // correctly because ISO dates are lexicographically ordered.
+            if (bet.date >= mondayStr && bet.date <= todayStr) {
+              weekProfit += bet.profit; // ← accumulate this week's settled P/L
+            }
+          }
+        });
+
+        const roi = totalStake > 0 ? (totalProfit / totalStake) * 100 : 0;
+        const winRate = settled > 0 ? (wins / settled) * 100 : 0;
+
+        // Net P/L
+        document.getElementById("stat-pl").textContent =
+          "R" + totalProfit.toFixed(2);
+        document.getElementById("stat-pl").className =
+          totalProfit >= 0 ? "text-green" : "text-red";
+
+        // ── CHANGED: Total Bets — just the length of the bets array ──
+        // No date filtering. Every logged entry counts, including Pending ones.
+        document.getElementById("stat-total-bets").textContent = bets.length;
+
+        // ── CHANGED: This Week's P/L — computed above with Monday boundary ──
+        document.getElementById("stat-week-pl").textContent =
+          "R" + weekProfit.toFixed(2);
+        document.getElementById("stat-week-pl").className =
+          weekProfit >= 0 ? "text-green" : "text-red";
+
+        document.getElementById("stat-roi").textContent = roi.toFixed(1) + "%";
+        document.getElementById("stat-winrate").textContent =
+          winRate.toFixed(1) + "%";
+        document.getElementById("stat-streak").textContent = streak;
+        document.getElementById("stat-total-staked").textContent =
+          "R" + totalStaked.toFixed(2);
+        document.getElementById("stat-total-won").textContent =
+          "R" + totalWon.toFixed(2);
+        document.getElementById("stat-total-won").className = "text-green";
+      }
+
+      // ════════════════════════════════════════════
+      //  EXPORT CSV
+      //  How it works:
+      //  1. Build an array of header columns.
+      //  2. Map every bet to a matching row of values.
+      //  3. For Parlay bets, flatten the legs into a readable
+      //     string so the cell doesn't break the CSV structure.
+      //  4. Escape any value that contains a comma or quote by
+      //     wrapping it in double-quotes and doubling inner quotes.
+      //  5. Join rows with newlines, create a Blob, and trigger
+      //     a hidden <a> click to download the file.
+      // ════════════════════════════════════════════
+      function exportCSV() {
+        if (!bets.length) return alert("No bets to export.");
+
+        const escape = (v) => {
+          const s = String(v ?? "");
+          // If the value contains commas, newlines or quotes, wrap in quotes
+          return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+        };
+
+        const headers = [
+          "Date",
+          "Time",
+          "Team A",
+          "Team B",
+          "Bet Type",
+          "Pick",
+          "Outcome",
+          "Odds",
+          "Stake",
+          "Payout",
+          "Status",
+          "Profit/Loss",
+          "Notes",
+        ];
+        const rows = bets.map((b) => {
+          const legsStr =
+            b.betType === "Parlay" && b.legs
+              ? b.legs
+                  .map(
+                    (l) =>
+                      `${l.match} [${l.prediction}→${l.outcome} @${l.odds}]`,
+                  )
+                  .join(" | ")
+              : "";
+          return [
+            b.date,
+            b.time,
+            b.betType === "Parlay" ? `${b.legs?.length}-Leg Parlay` : b.teamA,
+            b.betType === "Parlay" ? legsStr : b.teamB,
+            b.betType,
+            b.prediction || "",
+            b.outcome || "",
+            parseFloat(b.odds).toFixed(2),
+            parseFloat(b.stake).toFixed(2),
+            parseFloat(b.payout).toFixed(2),
+            b.status,
+            b.profit.toFixed(2),
+            b.notes || "",
+          ]
+            .map(escape)
+            .join(",");
+        });
+
+        const csv = [headers.join(","), ...rows].join("\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `bets_export_${new Date().toISOString().split("T")[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      // ════════════════════════════════════════════
+      //  MONTHLY P/L CHART
+      //  How it works:
+      //  1. Group all settled bets by "YYYY-MM" key.
+      //  2. Sum profit for each month.
+      //  3. Sort months chronologically (string sort works for ISO).
+      //  4. Show last 6 months so the chart doesn't get crowded.
+      //  5. Find the max absolute value to scale bar heights.
+      //  6. Each bar's height = (|profit| / maxAbs) * MAX_PX.
+      //     Positive bars grow upward, negative bars grow downward
+      //     from the baseline — achieved with flex column direction
+      //     and justify-content.
+      // ════════════════════════════════════════════
+      function renderMonthlyChart() {
+        const container = document.getElementById("monthlyChart");
+        const settled = bets.filter((b) => b.status !== "Pending");
+
+        if (!settled.length) {
+          container.innerHTML = `<div class="chart-empty">No settled bets yet — chart will appear once bets are resolved.</div>`;
+          return;
+        }
+
+        // Build month → profit map
+        const monthMap = {};
+        settled.forEach((b) => {
+          const key = b.date.slice(0, 7); // "YYYY-MM"
+          monthMap[key] = (monthMap[key] || 0) + b.profit;
+        });
+
+        // Sort and keep last 6
+        const sortedKeys = Object.keys(monthMap).sort();
+        const displayKeys = sortedKeys.slice(-6);
+
+        const values = displayKeys.map((k) => monthMap[k]);
+        const maxAbs = Math.max(...values.map(Math.abs), 1); // avoid divide-by-zero
+        const MAX_BAR_PX = 80; // tallest bar in pixels
+
+        // Month label formatter: "2025-03" → "Mar '25"
+        const fmtMonth = (k) => {
+          const [y, m] = k.split("-");
+          const name = [
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
+          ][parseInt(m) - 1];
+          return `${name} '${y.slice(2)}`;
+        };
+
+        let html = `<div class="chart-bars">`;
+        displayKeys.forEach((key, i) => {
+          const val = values[i];
+          const h = Math.max(
+            Math.round((Math.abs(val) / maxAbs) * MAX_BAR_PX),
+            2,
+          );
+          const isPos = val >= 0;
+          const cls = isPos ? "positive" : "negative";
+          const valLabel = (isPos ? "+" : "−") + "R" + Math.abs(val).toFixed(0);
+
+          // For positive: bar sits at bottom of bar-wrap (flex-end)
+          // For negative: bar sits at top of bar-wrap (flex-start)
+          const justify = isPos ? "flex-end" : "flex-start";
+
+          html += `
+            <div class="chart-col">
+              <div class="chart-bar-wrap" style="justify-content:${justify};">
+                <div class="chart-bar ${cls}" style="height:${h}px;">
+                  <span class="chart-value ${cls}">${valLabel}</span>
+                </div>
+              </div>
+              <span class="chart-label">${fmtMonth(key)}</span>
+            </div>`;
+        });
+        html += `</div>`;
+        container.innerHTML = html;
+      }
+
+      // ════════════════════════════════════════════
+      //  INIT
+      // ════════════════════════════════════════════
+      document.getElementById("date").valueAsDate = new Date();
+      renderTable();
+      updateDashboard();
+      renderMonthlyChart();
+    </script>
+  </body>
+</html>
